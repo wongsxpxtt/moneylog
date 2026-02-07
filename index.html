@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MoneyLog — บันทึกรายรับรายจ่าย</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <div class="bg"></div>
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">₿</div>
+      <div>
+        <div class="brand-title">MoneyLog</div>
+        <div class="brand-sub">บันทึกรายรับรายจ่าย</div>
+      </div>
+    </div>
+    <div class="top-actions">
+      <button id="btnOpenSettings" class="btn ghost hidden">ตั้งค่า</button>
+      <button id="btnLogout" class="btn ghost hidden">ออกจากระบบ</button>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <!-- AUTH -->
+    <section id="viewAuth" class="card">
+      <h1 class="h1">เข้าสู่ระบบ</h1>
+      <p class="muted">ล็อกอินเพื่อซิงก์ข้อมูลข้ามเครื่อง</p>
+
+      <div class="grid2">
+        <div class="field">
+          <label>อีเมล</label>
+          <input id="authEmail" type="email" placeholder="name@email.com" autocomplete="email" />
+        </div>
+        <div class="field">
+          <label>รหัสผ่าน</label>
+          <input id="authPass" type="password" placeholder="อย่างน้อย 6 ตัว" autocomplete="current-password" />
+        </div>
+      </div>
+
+      <div class="row gap">
+        <button id="btnLogin" class="btn primary">เข้าสู่ระบบ</button>
+        <button id="btnGithub" class="btn ghost">
+  เข้าสู่ระบบด้วย GitHub
+</button>
+        <button id="btnRegister" class="btn">สมัครสมาชิก</button>
+      </div>
+
+      <div id="authMsg" class="toast hidden"></div>
+    </section>
+
+    <!-- APP -->
+    <section id="viewApp" class="hidden">
+
+      <!-- SUMMARY CARDS -->
+      <section class="summary">
+        <div class="card stat">
+          <div class="stat-title">รายรับวันนี้</div>
+          <div id="sumIncomeToday" class="stat-value">฿0</div>
+        </div>
+        <div class="card stat">
+          <div class="stat-title">รายจ่ายวันนี้</div>
+          <div id="sumExpenseToday" class="stat-value">฿0</div>
+        </div>
+        <div class="card stat accent">
+          <div class="stat-title">สุทธิวันนี้</div>
+          <div id="sumNetToday" class="stat-value">฿0</div>
+        </div>
+      </section>
+
+      <!-- ACTION BAR -->
+      <section class="bar">
+        <div class="bar-left">
+          <div class="h2">วันนี้</div>
+          <div id="todayLabel" class="muted"></div>
+        </div>
+        <div class="bar-right">
+          <button id="btnAdd" class="btn primary">+ เพิ่มรายการ</button>
+        </div>
+      </section>
+
+      <!-- LIST -->
+      <section class="card">
+        <div class="card-head">
+          <div>
+            <div class="h3">รายการวันนี้</div>
+            <div class="muted">แตะเพื่อดูรายละเอียด</div>
+          </div>
+          <div class="chip">
+            <span>แสดง:</span>
+            <select id="datePicker">
+              <!-- เติมด้วย JS -->
+            </select>
+          </div>
+        </div>
+
+        <div id="list" class="list"></div>
+        <div id="emptyState" class="empty hidden">
+          ยังไม่มีรายการในวันนี้ — กด “เพิ่มรายการ” ได้เลย
+        </div>
+      </section>
+
+      <!-- MONTH SUMMARY -->
+      <section class="card">
+        <div class="card-head">
+          <div>
+            <div class="h3">สรุปเดือนนี้</div>
+            <div id="monthLabel" class="muted"></div>
+          </div>
+          <div class="pill">
+            <div class="pill-item">
+              <div class="muted">รับ</div>
+              <div id="sumIncomeMonth" class="pill-val">฿0</div>
+            </div>
+            <div class="pill-item">
+              <div class="muted">จ่าย</div>
+              <div id="sumExpenseMonth" class="pill-val">฿0</div>
+            </div>
+            <div class="pill-item">
+              <div class="muted">สุทธิ</div>
+              <div id="sumNetMonth" class="pill-val">฿0</div>
+            </div>
+          </div>
+        </div>
+        <div class="muted small">* MVP: สรุปจากรายการที่บันทึกจริง (ยังไม่ทำรายได้อัตโนมัติ)</div>
+      </section>
+
+    </section>
+  </main>
+
+  <!-- MODAL ADD -->
+  <div id="modal" class="modal hidden">
+    <div class="modal-card">
+      <div class="modal-head">
+        <div id="modalTitle" class="h3">เพิ่มรายการ</div>
+        <button id="btnCloseModal" class="btn ghost">✕</button>
+      </div>
+
+      <div class="grid2">
+        <div class="field">
+          <label>วันที่</label>
+          <input id="txDate" type="date" />
+        </div>
+        <div class="field">
+          <label>ประเภท</label>
+          <select id="txType">
+            <option value="income">รายรับ</option>
+            <option value="expense">รายจ่าย</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>หมวด</label>
+          <select id="txCat">
+            <option>ค่าแรง</option>
+            <option>โอที</option>
+            <option>โบนัส</option>
+            <option>อาหาร</option>
+            <option>เดินทาง</option>
+            <option>ของใช้</option>
+            <option>หนี้</option>
+            <option>อื่นๆ</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>จำนวนเงิน</label>
+          <input id="txAmt" type="number" min="0" step="1" placeholder="เช่น 350" />
+        </div>
+      </div>
+
+      <div class="field">
+        <label>หมายเหตุ (ไม่บังคับ)</label>
+        <input id="txNote" type="text" placeholder="เช่น ได้โอที 2 ชม." />
+      </div>
+
+      <div class="row end gap">
+        <button id="btnSave" class="btn primary">บันทึก</button>
+      </div>
+
+      <div id="modalMsg" class="toast hidden"></div>
+    </div>
+  </div>
+
+  <!-- Supabase JS (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="money.js"></script>
+</body>
+</html>
