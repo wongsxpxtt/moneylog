@@ -22,7 +22,7 @@
     </div>
     <div class="top-actions">
       <button id="btnOpenSettings" class="btn ghost hidden">ตั้งค่า</button>
-      <button id="btnLogout" class="btn ghost hidden">ออกจากระบบ</button>
+      <button id="btnLogout" class="btn ghost hidden" type="button">ออกจากระบบ</button>
     </div>
   </header>
 
@@ -45,15 +45,15 @@
       </div>
 
       <div class="row gap">
-        <button id="btnLogin" class="btn primary">เข้าสู่ระบบ</button>
-        <button id="btnGithub" class="btn ghost">
-  เข้าสู่ระบบด้วย GitHub
-</button>
-        <button id="btnRegister" class="btn">สมัครสมาชิก</button>
+        <button id="btnLogin" class="btn primary" type="button">เข้าสู่ระบบ</button>
+        <button id="btnGithub" class="btn ghost" type="button">เข้าสู่ระบบด้วย GitHub</button>
+        <button id="btnRegister" class="btn" type="button">สมัครสมาชิก</button>
       </div>
+
       <div class="row gap" style="margin-top:10px;">
-  <button id="btnForgot" class="btn ghost">ลืมรหัสผ่าน</button>
-</div>
+        <button id="btnForgot" class="btn ghost" type="button">ลืมรหัสผ่าน</button>
+      </div>
+
       <div id="authMsg" class="toast hidden"></div>
     </section>
 
@@ -83,7 +83,7 @@
           <div id="todayLabel" class="muted"></div>
         </div>
         <div class="bar-right">
-          <button id="btnAdd" class="btn primary">+ เพิ่มรายการ</button>
+          <button id="btnAdd" class="btn primary" type="button">+ เพิ่มรายการ</button>
         </div>
       </section>
 
@@ -130,16 +130,23 @@
             </div>
           </div>
         </div>
-        <div class="muted small">* MVP: สรุปจากรายการที่บันทึกจริง (ยังไม่ทำรายได้อัตโนมัติ)</div>
-        <div class="card" style="margin-top:12px;">
-  <div class="h3">ภาพรวม 14 วันล่าสุด</div>
-  <canvas id="chartDaily" height="120"></canvas>
-</div>
 
-<div class="card" style="margin-top:12px;">
-  <div class="h3">สัดส่วนรายจ่ายตามหมวด (เดือนนี้)</div>
-  <canvas id="chartCategory" height="120"></canvas>
-</div>
+        <div class="muted small">* MVP: สรุปจากรายการที่บันทึกจริง (ยังไม่ทำรายได้อัตโนมัติ)</div>
+      </section>
+
+      <!-- CHARTS (แยก section ออกมา จะนิ่งที่สุด) -->
+      <section class="card" style="margin-top:12px;">
+        <div class="h3">ภาพรวม 14 วันล่าสุด</div>
+        <div class="chart-box">
+          <canvas id="chartDaily"></canvas>
+        </div>
+      </section>
+
+      <section class="card" style="margin-top:12px;">
+        <div class="h3">สัดส่วนรายจ่ายตามหมวด (เดือนนี้)</div>
+        <div class="chart-box">
+          <canvas id="chartCategory"></canvas>
+        </div>
       </section>
 
     </section>
@@ -150,7 +157,7 @@
     <div class="modal-card">
       <div class="modal-head">
         <div id="modalTitle" class="h3">เพิ่มรายการ</div>
-        <button id="btnCloseModal" class="btn ghost">✕</button>
+        <button id="btnCloseModal" class="btn ghost" type="button">✕</button>
       </div>
 
       <div class="grid2">
@@ -191,7 +198,7 @@
       </div>
 
       <div class="row end gap">
-        <button id="btnSave" class="btn primary">บันทึก</button>
+        <button id="btnSave" class="btn primary" type="button">บันทึก</button>
       </div>
 
       <div id="modalMsg" class="toast hidden"></div>
@@ -204,6 +211,3 @@
   <script src="money.js"></script>
 </body>
 </html>
-
-
-
