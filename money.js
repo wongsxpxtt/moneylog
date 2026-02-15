@@ -34,6 +34,18 @@
     return { start: isoLocalDate(start), endExclusive: isoLocalDate(end) };
   }
 
+  // ✅ สร้างรายการวันที่ย้อนหลัง N วัน (ห้าม default พึ่ง currentDate ก่อนประกาศ)
+  function lastNDaysISO(n, endISO) {
+    const end = new Date((endISO || isoLocalDate()) + "T00:00:00");
+    const out = [];
+    for (let i = n - 1; i >= 0; i--) {
+      const d = new Date(end);
+      d.setDate(d.getDate() - i);
+      out.push(isoLocalDate(d));
+    }
+    return out;
+  }
+
   function showToast(el, msg, ok = true) {
     el.textContent = msg;
     el.classList.remove("hidden");
@@ -72,6 +84,10 @@
   const list = $("list");
   const emptyState = $("emptyState");
 
+  // ✅ chart canvases (ต้องมีใน index.html และต้องโหลด Chart.js ก่อน money.js)
+  const chartDailyEl = $("chartDaily");
+  const chartCategoryEl = $("chartCategory");
+
   const sumIncomeToday = $("sumIncomeToday");
   const sumExpenseToday = $("sumExpenseToday");
   const sumNetToday = $("sumNetToday");
@@ -102,6 +118,10 @@
   let realtimeChannel = null;
   let editingId = null;
 
+  // charts
+  let chartDaily = null;
+  let chartCategory = null;
+
   // =========================
   // Auth + profile
   // =========================
@@ -125,7 +145,6 @@
     const password = authPass.value.trim();
     if (!email || password.length < 6) return showToast(authMsg, "กรอกอีเมล และรหัสผ่านอย่างน้อย 6 ตัว", false);
 
-    // ถ้าคุณปิด confirm email (dev mode) จะสมัครแล้วล็อกอินได้ทันที
     const { data, error } = await sb.auth.signUp({
       email,
       password,
@@ -161,8 +180,17 @@
   }
 
   async function signOut() {
-    await sb.auth.signOut();
+    // กัน realtime เด้ง refresh หลัง logout
+    if (realtimeChannel) {
+      sb.removeChannel(realtimeChannel);
+      realtimeChannel = null;
+    }
+
+    const { error } = await sb.auth.signOut();
+    if (error) return showToast(authMsg, error.message, false);
+
     currentUser = null;
+    txCache = [];
     exitApp();
   }
 
@@ -180,7 +208,7 @@
     viewApp.classList.remove("hidden");
     btnLogout.classList.remove("hidden");
 
-    currentDate = isoLocalDate(); // ✅ ไม่ใช้ toISOString
+    currentDate = isoLocalDate();
     txDate.value = currentDate;
 
     todayLabel.textContent = `วันที่ ${currentDate}`;
@@ -195,12 +223,12 @@
 
   function fillDatePicker() {
     datePicker.innerHTML = "";
-    const base = new Date(currentDate + "T00:00:00"); // ✅ ยึดจาก currentDate
+    const base = new Date(currentDate + "T00:00:00");
 
     for (let i = 0; i < 14; i++) {
       const d = new Date(base);
       d.setDate(d.getDate() - i);
-      const iso = isoLocalDate(d); // ✅ ไม่ใช้ toISOString
+      const iso = isoLocalDate(d);
 
       const opt = document.createElement("option");
       opt.value = iso;
@@ -217,7 +245,6 @@
     const { data, error } = await sb
       .from("transactions")
       .select("id, date, type, category, amount, note, created_at")
-      // ✅ แนะนำกรอง user_id เผื่อ RLS/ความชัวร์
       .eq("user_id", currentUser.id)
       .gte("date", start)
       .lt("date", endExclusive)
@@ -227,6 +254,7 @@
     if (error) throw error;
     txCache = data || [];
     renderMonthSummary();
+    renderCharts();
   }
 
   function renderMonthSummary() {
@@ -235,6 +263,86 @@
     sumIncomeMonth.textContent = fmtTHB(income);
     sumExpenseMonth.textContent = fmtTHB(expense);
     sumNetMonth.textContent = fmtTHB(income - expense);
+  }
+
+  function renderCharts() {
+    // ถ้า index.html ยังไม่ได้ใส่ canvas ก็ไม่ทำอะไร
+    if (!chartDailyEl || !chartCategoryEl) return;
+
+    // ถ้า Chart.js ยังไม่ถูกโหลด จะกัน error ไม่ให้ทั้งแอปพัง
+    if (typeof Chart === "undefined") {
+      console.warn("Chart.js not loaded yet. Add Chart.js <script> before money.js");
+      return;
+    }
+
+    // --------- (A) Bar: 14 วันล่าสุด ---------
+    const days = lastNDaysISO(14, currentDate);
+    const incomeSeries = [];
+    const expenseSeries = [];
+
+    for (const day of days) {
+      const dayTx = txCache.filter((x) => x.date === day);
+      const income = dayTx.filter((x) => x.type === "income").reduce((s, x) => s + Number(x.amount), 0);
+      const expense = dayTx.filter((x) => x.type === "expense").reduce((s, x) => s + Number(x.amount), 0);
+      incomeSeries.push(income);
+      expenseSeries.push(expense);
+    }
+
+    if (chartDaily) chartDaily.destroy();
+    chartDaily = new Chart(chartDailyEl, {
+      type: "bar",
+      data: {
+        labels: days.map((d) => d.slice(5)), // MM-DD
+        datasets: [
+          { label: "รายรับ", data: incomeSeries },
+          { label: "รายจ่าย", data: expenseSeries },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { position: "top" } },
+        scales: {
+          y: {
+            ticks: {
+              callback: (v) => "฿" + Number(v).toLocaleString("th-TH"),
+            },
+          },
+        },
+      },
+    });
+
+    // --------- (B) Pie: รายจ่ายตามหมวด (เดือนนี้) ---------
+    const expByCat = new Map();
+    for (const t of txCache) {
+      if (t.type !== "expense") continue;
+      const k = t.category || "อื่นๆ";
+      expByCat.set(k, (expByCat.get(k) || 0) + Number(t.amount));
+    }
+
+    const catLabels = Array.from(expByCat.keys());
+    const catValues = Array.from(expByCat.values());
+
+    if (chartCategory) chartCategory.destroy();
+    chartCategory = new Chart(chartCategoryEl, {
+      type: "pie",
+      data: {
+        labels: catLabels,
+        datasets: [{ label: "รายจ่าย", data: catValues }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: "bottom" },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => `${ctx.label}: ฿${Number(ctx.raw).toLocaleString("th-TH")}`,
+            },
+          },
+        },
+      },
+    });
   }
 
   function renderByDate(dateISO) {
@@ -253,6 +361,7 @@
     list.innerHTML = "";
     if (dayTx.length === 0) {
       emptyState.classList.remove("hidden");
+      renderCharts(); // ✅ ยังอัปเดตกราฟตาม currentDate
       return;
     }
     emptyState.classList.add("hidden");
@@ -290,6 +399,9 @@
         openModal(tx);
       });
     });
+
+    // ✅ เรียกครั้งเดียวพอ (ห้ามอยู่ใน loop)
+    renderCharts();
   }
 
   // =========================
@@ -317,7 +429,6 @@
     modal.classList.remove("hidden");
 
     if (tx) {
-      // โหมดแก้ไข
       editingId = tx.id;
       modalTitle.textContent = "แก้ไขรายการ";
       btnSave.textContent = "บันทึกการแก้ไข";
@@ -328,7 +439,6 @@
       txAmt.value = tx.amount;
       txNote.value = tx.note || "";
     } else {
-      // โหมดเพิ่ม
       editingId = null;
       modalTitle.textContent = "เพิ่มรายการ";
       btnSave.textContent = "บันทึก";
@@ -362,7 +472,6 @@
     }
 
     if (editingId) {
-      // UPDATE
       const { error } = await sb
         .from("transactions")
         .update({ date, type, category, amount, note: note || null })
@@ -372,7 +481,6 @@
       if (error) return showToast(modalMsg, error.message, false);
       showToast(modalMsg, "แก้ไขแล้ว", true);
     } else {
-      // INSERT
       const { error } = await sb
         .from("transactions")
         .insert({ user_id: currentUser.id, date, type, category, amount, note: note || null });
@@ -416,7 +524,7 @@
   btnRegister.addEventListener("click", () => signUp().catch((e) => showToast(authMsg, e.message, false)));
   btnLogin.addEventListener("click", () => signIn().catch((e) => showToast(authMsg, e.message, false)));
   btnGithub.addEventListener("click", () => signInWithGithub().catch((e) => showToast(authMsg, e.message, false)));
-  btnLogout.addEventListener("click", () => signOut());
+  btnLogout.addEventListener("click", () => signOut().catch((e) => showToast(authMsg, e.message, false)));
 
   btnAdd.addEventListener("click", () => openModal());
   btnCloseModal.addEventListener("click", closeModal);
