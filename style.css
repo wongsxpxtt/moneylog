@@ -249,3 +249,15 @@ input:focus, select:focus{ border-color: rgba(124,124,255,.55); box-shadow: 0 0 
 .btn.danger:hover {
   background: rgba(255, 80, 80, 0.25);
 }
+.chart-box{
+  position: relative;
+  width: 100%;
+  height: 300px; /* ล็อกความสูง กันกราฟขยายไม่หยุด */
+  margin-top: 10px;
+}
+
+.chart-box canvas{
+  width: 100% !important;
+  height: 100% !important;
+}
+
